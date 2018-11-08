@@ -1,0 +1,204 @@
+##add cert to bro truststore
+add cert to bro 1st capture
+-------IF GET PEM FILE CERT WITH BRO 
+1-get each cert to a file from a pem file with several certs
+ awk 'split_after == 1 {close(n".pem"); n++;split_after=0}/-----END CERTIFICATE-----/ {split_after=1}{print > n".pem"}' < /mnt/data/bro/logs/current/certs ....pem		
+
+2-get names if posible
+for i in *.pem; do openssl x509 -in $i -text -noout |      grep DirName:|     awk '{ print $1}'|     awk -F ':' '{ print $2 }'|     sed 's/,$//'; done | sort -u >domains.tmp
+##1 solo openssl x509 -in 6.pem -text -noout
+-------------
+
+
+3-convert to pem to der
+openssl x509 -in cert.pem -outform der -out cert.der
+ ## 44convert to der hexa
+openssl x509 -in cert.der -inform DER -outform DER | hexdump -v -e '1/1 "\\\x"' -e '1/1 "%02X"' > testhexesc.der
+
+4-puto into:
+redef SSL::root_certs += {
+	["My First Certificate"] = "\x30\x82\x02\x66\x30\x82\x01\xCF\xA0\x03\x02\x01\x02\x02\x09\x00\xD4\x33\x4D\x4F\xEB\x43\xCC\x23\x30\x0D\x06\x09\x2A\x86\x48\x86\xF7\x0D\x01\x01\x05\x05\x00\x30\x4C\x31\x0B\x30\x09\x06\x03\x55\x04\x06\x13\x02\x55\x53\x31\x0B\x30\x09\x06\x03\x55\x04\x08\x0C\x02\x49\x4C\x31\x0D\x30\x0B\x06\x03\x55\x04\x0A\x0C\x04\x4E\x43\x53\x41\x31\x0C\x30\x0A\x06\x03\x55\x04\x0B\x0C\x03\x43\x53\x44\x31\x13\x30\x11\x06\x03\x55\x04\x03\x0C\x0A\x42\x72\x6F\x6D\x65\x74\x68\x65\x75\x73\x30\x1E\x17\x0D\x31\x31\x31\x30\x32\x35\x31\x35\x30\x31\x35\x35\x5A\x17\x0D\x32\x31\x30\x39\x30\x32\x31\x35\x30\x31\x35\x35\x5A\x30\x4C\x31\x0B\x30\x09\x06\x03\x55\x04\x06\x13\x02\x55\x53\x31\x0B\x30\x09\x06\x03\x55\x04\x08\x0C\x02\x49\x4C\x31\x0D\x30\x0B\x06\x03\x55\x04\x0A\x0C\x04\x4E\x43\x53\x41\x31\x0C\x30\x0A\x06\x03\x55\x04\x0B\x0C\x03\x43\x53\x44\x31\x13\x30\x11\x06\x03\x55\x04\x03\x0C\x0A\x42\x72\x6F\x6D\x65\x74\x68\x65\x75\x73\x30\x81\x9F\x30\x0D\x06\x09\x2A\x86\x48\x86\xF7\x0D\x01\x01\x01\x05\x00\x03\x81\x8D\x00\x30\x81\x89\x02\x81\x81\x00\xAE\xFE\x76\x9C\x78\x0A\xDB\xCA\x2C\xCB\x90\x6A\xA9\xD5\x24\x21\x88\x02\x66\xBA\xD2\x83\x9C\x31\xD2\xF8\x1C\x0A\x74\x56\xEF\x3E\x1F\xD3\x8B\xDD\x38\x86\x3D\x65\xBF\xAF\x97\x33\xC3\xC3\x04\x70\xAC\xEA\x57\x55\xD7\xAC\x98\xE4\xB5\x97\xBD\x96\x73\x74\x27\xE2\x0B\xA0\x0C\x82\xE2\x81\xC1\x1C\x4F\xED\x21\xFA\xA5\xC2\x30\xFF\x91\x3A\x97\x0F\x4D\x4A\xEE\x1C\x19\xC2\x02\x7C\x96\xED\x53\x2B\xDE\x1E\xD2\x64\xDC\x71\xD3\xD5\x9C\x3E\x08\x25\xA2\x10\xA9\xD8\xC7\xA9\x90\x93\x31\xB3\xAE\x3B\x4A\x53\x0D\x90\x55\x6A\x96\xC9\x02\x03\x01\x00\x01\xA3\x50\x30\x4E\x30\x1D\x06\x03\x55\x1D\x0E\x04\x16\x04\x14\x38\xE3\xAF\xD1\x2B\xB7\x93\xFE\x4D\xE7\xF7\xD2\xB7\x7B\x36\xB9\xD8\x9E\xDB\xBE\x30\x1F\x06\x03\x55\x1D\x23\x04\x18\x30\x16\x80\x14\x38\xE3\xAF\xD1\x2B\xB7\x93\xFE\x4D\xE7\xF7\xD2\xB7\x7B\x36\xB9\xD8\x9E\xDB\xBE\x30\x0C\x06\x03\x55\x1D\x13\x04\x05\x30\x03\x01\x01\xFF\x30\x0D\x06\x09\x2A\x86\x48\x86\xF7\x0D\x01\x01\x05\x05\x00\x03\x81\x81\x00\x69\xAF\xBA\x6F\x0A\xA0\x01\x03\x85\x3C\x46\xAC\x25\x1E\x1F\xBA\x78\x7F\x72\x35\xAD\x41\x14\x87\xC9\xC9\xF8\x8C\x5B\x0F\x24\x34\x02\x89\x1A\xB2\x62\x6F\xDB\x6E\xE8\xA9\xD1\xA9\x6F\xC0\x85\x26\x81\x49\x57\xDC\x8B\x32\x58\x96\xAE\x72\xFC\x20\x4B\x51\x07\x76\xCF\x76\xE8\x8C\x4E\x7E\x97\xC4\xFC\x63\x48\xFB\x73\x12\x19\x3F\xC1\x72\x6E\x0C\x41\xD7\xC1\x9C\x67\x71\x65\x0F\xBF\xE3\x39\x27\x26\x08\x4E\xC3\x40\xCC\x7B\x32\xF3\x85\x4C\x74\xA5\x00\x66\x70\x1F\xDB\x79\xD6\xB9\x78\xE3\x0A\xB9\xED\xD2\x60\x45\x74\xB5\x38"
+};
+
+##view certs files
+openssl x509 -in cert.pem -text -noout
+openssl x509 -in cert.cer -text -noout
+openssl x509 -in cert.crt -text -noout
+
+
+##CREATE OWNBRO TRUSTORE- AUTOMATED
+#1--#RUN SCRIPT WH-TRUSTORE.SH IN BRO-UTILS-FORENSICS
+touch /opt/bro/share/bro/site/sensor/wh-trust.bro; for i in /etc/sensor/private/*.pem; do cp $i .; done; for i in ./*.pem; do openssl x509 -in $i -outform der -out $i.der; done; for m in ./*.pem.der; do openssl x509 -in $m -inform DER -outform DER | hexdump -v -e '1/1 "\\\x"' -e '1/1 "%02X"' > $m-hexa.der; done; for f in ./*-hexa.der; do  echo -e '[cert:'$f'] ="' >> /opt/bro/share/bro/site/sensor/wh-trust.bro && cat $f >> /opt/bro/share/bro/site/sensor/wh-trust.bro && echo -e '",' >> /opt/bro/share/bro/site/sensor/wh-trust.bro; done;
+#2--modify file check header and footer , should look like 4^
+nano /opt/bro/share/bro/site/sensor/wh-trust.bro
+#3--ADD 
+echo "@load ./wh-rust.bro" >> /opt/bro/share/bro/site/sensor/__load__.bro
+#4-load scripts check if bro is running fine
+systemctl restart broctl
+
+
+
+###list CN names for each pem file
+for i in /etc/sensor/private/*.pem; do echo "--- $i ---" && openssl x509 -in $i -text -noout; done | grep CN=
+
+##convert all files to der
+for i in /etc/sensor/private/*.pem; do openssl x509 -in cert.pem -outform der -out i++.der;done
+
+
+#####BROSCRIPTPS
+https://github.com/reservoirlabs/bro-scripts
+
+#######SAMPLE INTERFER A NOTICE
+http://stackoverflow.com/questions/40549899/bro-2-4-1-generating-e-mail-notice-for-ssh-bruteforce-attack
+
+@load protocols/ssh/detect-bruteforcing
+
+redef SSH::password_guesses_limit=5;
+redef SSH::guessing_timeout=1440 mins;
+
+hook Notice::policy(n: Notice::Info)
+    {
+    if ( n$note == SSH::Password_Guessing && /192\.168\.178\.16/ in n$sub )
+            add n$actions[Notice::ACTION_EMAIL];
+    }
+
+####efalongconn.bro
+redef enum Notice::Type += {
+    ## Indicates that a connection remained established longer
+    ## than 50 minutes.
+    Long_Conn_Found
+};
+
+event Conn::log_conn(rec: Conn::Info)
+    {
+    if ( rec?$duration && rec$duration > 50mins )
+        NOTICE([$note=Long_Conn_Found,
+                $msg=fmt("Unusual long connection, more than 50min to %s", rec$id$resp_h),
+                $id=rec$id]);
+    }
+##
+SAMPLE OUTPUT
+2017-03-23T11:38:46+0000        192.168.8.100   Unusual long connection, more than 50min to 52.112.194.91
+2017-03-23T11:48:07+0000        192.168.8.100   Unusual long connection, more than 50min to 52.112.194.91
+2017-03-23T12:00:56+0000        192.168.8.100   Unusual long connection, more than 50min to 13.107.18.11
+####################
+###SUPRESS IGNORE A NOTICE####
+redef Notice::ignored_types += { SSL::Invalid_Server_Cert };
+#################
+
+###ADD CERTIFICATE TO BRO TRUST###
+redef SSL::root_certs += {
+	["My First Certificate"] = "\x30\x82\x02\x66\x30\x82\x01\xCF\xA0\x03\x02\x01\x02\x02\x09\x00\xD4\x33\x4D\x4F\xEB\x43\xCC\x23\x30\x0D\x06\x09\x2A\x86\x48\x86\xF7\x0D\x01\x01\x05\x05\x00\x30\x4C\x31\x0B\x30\x09\x06\x03\x55\x04\x06\x13\x02\x55\x53\x31\x0B\x30\x09\x06\x03\x55\x04\x08\x0C\x02\x49\x4C\x31\x0D\x30\x0B\x06\x03\x55\x04\x0A\x0C\x04\x4E\x43\x53\x41\x31\x0C\x30\x0A\x06\x03\x55\x04\x0B\x0C\x03\x43\x53\x44\x31\x13\x30\x11\x06\x03\x55\x04\x03\x0C\x0A\x42\x72\x6F\x6D\x65\x74\x68\x65\x75\x73\x30\x1E\x17\x0D\x31\x31\x31\x30\x32\x35\x31\x35\x30\x31\x35\x35\x5A\x17\x0D\x32\x31\x30\x39\x30\x32\x31\x35\x30\x31\x35\x35\x5A\x30\x4C\x31\x0B\x30\x09\x06\x03\x55\x04\x06\x13\x02\x55\x53\x31\x0B\x30\x09\x06\x03\x55\x04\x08\x0C\x02\x49\x4C\x31\x0D\x30\x0B\x06\x03\x55\x04\x0A\x0C\x04\x4E\x43\x53\x41\x31\x0C\x30\x0A\x06\x03\x55\x04\x0B\x0C\x03\x43\x53\x44\x31\x13\x30\x11\x06\x03\x55\x04\x03\x0C\x0A\x42\x72\x6F\x6D\x65\x74\x68\x65\x75\x73\x30\x81\x9F\x30\x0D\x06\x09\x2A\x86\x48\x86\xF7\x0D\x01\x01\x01\x05\x00\x03\x81\x8D\x00\x30\x81\x89\x02\x81\x81\x00\xAE\xFE\x76\x9C\x78\x0A\xDB\xCA\x2C\xCB\x90\x6A\xA9\xD5\x24\x21\x88\x02\x66\xBA\xD2\x83\x9C\x31\xD2\xF8\x1C\x0A\x74\x56\xEF\x3E\x1F\xD3\x8B\xDD\x38\x86\x3D\x65\xBF\xAF\x97\x33\xC3\xC3\x04\x70\xAC\xEA\x57\x55\xD7\xAC\x98\xE4\xB5\x97\xBD\x96\x73\x74\x27\xE2\x0B\xA0\x0C\x82\xE2\x81\xC1\x1C\x4F\xED\x21\xFA\xA5\xC2\x30\xFF\x91\x3A\x97\x0F\x4D\x4A\xEE\x1C\x19\xC2\x02\x7C\x96\xED\x53\x2B\xDE\x1E\xD2\x64\xDC\x71\xD3\xD5\x9C\x3E\x08\x25\xA2\x10\xA9\xD8\xC7\xA9\x90\x93\x31\xB3\xAE\x3B\x4A\x53\x0D\x90\x55\x6A\x96\xC9\x02\x03\x01\x00\x01\xA3\x50\x30\x4E\x30\x1D\x06\x03\x55\x1D\x0E\x04\x16\x04\x14\x38\xE3\xAF\xD1\x2B\xB7\x93\xFE\x4D\xE7\xF7\xD2\xB7\x7B\x36\xB9\xD8\x9E\xDB\xBE\x30\x1F\x06\x03\x55\x1D\x23\x04\x18\x30\x16\x80\x14\x38\xE3\xAF\xD1\x2B\xB7\x93\xFE\x4D\xE7\xF7\xD2\xB7\x7B\x36\xB9\xD8\x9E\xDB\xBE\x30\x0C\x06\x03\x55\x1D\x13\x04\x05\x30\x03\x01\x01\xFF\x30\x0D\x06\x09\x2A\x86\x48\x86\xF7\x0D\x01\x01\x05\x05\x00\x03\x81\x81\x00\x69\xAF\xBA\x6F\x0A\xA0\x01\x03\x85\x3C\x46\xAC\x25\x1E\x1F\xBA\x78\x7F\x72\x35\xAD\x41\x14\x87\xC9\xC9\xF8\x8C\x5B\x0F\x24\x34\x02\x89\x1A\xB2\x62\x6F\xDB\x6E\xE8\xA9\xD1\xA9\x6F\xC0\x85\x26\x81\x49\x57\xDC\x8B\x32\x58\x96\xAE\x72\xFC\x20\x4B\x51\x07\x76\xCF\x76\xE8\x8C\x4E\x7E\x97\xC4\xFC\x63\x48\xFB\x73\x12\x19\x3F\xC1\x72\x6E\x0C\x41\xD7\xC1\x9C\x67\x71\x65\x0F\xBF\xE3\x39\x27\x26\x08\x4E\xC3\x40\xCC\x7B\x32\xF3\x85\x4C\x74\xA5\x00\x66\x70\x1F\xDB\x79\xD6\xB9\x78\xE3\x0A\xB9\xED\xD2\x60\x45\x74\xB5\x38"
+};
+
+####
+
+BRO LIVE
+#func ok
+stdbuf -i0 -o0 -e0 tail -F -n +1 /mnt/data/bro/log/current/conn.log | stdbuf -i0 -o0 -e0 /opt/bro/bin/bro-cut -F\| ts id.orig_h id.resp_h id.resp_p proto
+
+stdbuf -i0 -o0 -e0 tail -F -n +1 /mnt/data/bro/log/current/conn.log | stdbuf -i0 -o0 -e0 /opt/bro/bin/bro-cut -d -F\| ts id.orig_h id.resp_h id.resp_p proto | stdbuf -i0 -o0 -e0 awk -F\| -vOFS=\| '{ gsub(/\..+/, "", $1); print $1, $2, "A", "/"$3"/"$2"/"$2":"$5"."$4,"#FF00ff"}' | ./gource --multi-sampling --no-vsync --title "bro conn activity" --key   --realtime --highlight-users --highlight-dirs --user-friction 0.2   --user-scale 0.8 --log-format custom --disable-auto-rotate -i 0 -
+
+
+#no
+stdbuf -i0 -o0 -e0 tail -F -n +1 /var/opt/bro/logs/current/conn.log | stdbuf -i0 -o0 -e0 /opt/bro/bin/bro-cut -F\| ts id.orig_h id.resp_h id.resp_p proto | stdbuf -i0 -o0 -e0 awk -F\| -vOFS=\| '{ gsub(/\..+/, "", $1); print $1, $2, "A", "/"$3"/"$2"/"$2":"$5"."$4,"#FF00ff"}' | ./gource --multi-sampling --no-vsync --title "bro conn activity" --key   --realtime --highlight-users --highlight-dirs --user-friction 0.2   --user-scale 0.8 --log-format custom --disable-auto-rotate -i 0 -
+
+
+
+#######################
+https://komunity.komand.com/learn/featured/working-with-bro-logs-queries-by-example/
+
+gzcat 2013-01-01/conn.00\:00\:00-00\:00\:00.log.gz | sed -n '7p'
+
+#by ip
+cat ~/lars/ssl.10\:4*.log | ./bro-cut -c | awk -F '\t' '$3 == "10.1.10.231" {print $3 "\t" $4 "\t" $7 "\t" $8 "\t"$9}'
+
+#machines with ssh failure
+cat ~/lars/ssh.10\:4*.log | awk -F '\t' '$7 == "failure" { print $3 }' | sort -t . -n -k 1,1 -k 2,2 -k 3,3 -k 4,4 | uniq -c | sort -rn | head -5
+
+#ssh client version
+ | bro-cut client | sort | uniq
+
+#conn between seconds time,btw 5 and 10 min
+cat ./conn.10\:*.log |/opt/bro/bin/bro-cut -d duration id.{orig,resp}_{h,p} | awk '$1 >= 300 && $1 <= 600' | sort -rn
+
+#conn top 10 conn by time
+cat ~/lars/conn.10\:*.log | /opt/bro/bin/bro-cut duration id.{orig,resp}_{h,p} | sort -rn | head -10
+
+#conn any http server not using 80 or 8080 ports
+cat ./conn.10\:*.log | /opt/bro/bin/bro-cut service id.resp_p id.resp_h | awk '$1=="http" && !($2==80 || $2==8080) { print $0 }' | sort -u
+
+#
+
+#conn top 10 sending most traffic
+cat ~/lars/conn.*.log | /opt/bro/bin/bro-cut  id.orig_h orig_bytes| sort| awk '{ if (host != $1) {if (size != 0) print $1, size;host=$1;size=0} else size += $2} END {if (size != 0) print $1, size}'| sort -k 2 | head
+ 
+
+###data
+We use dumpcap from wireshark from source for packet capture...example 
+below:
+
+/usr/local/bin/dumpcap -q -b filesize:409600 -b files:50 -Z none -f 'ip 
+and port 25' -i eth2 -w /home/pcaps/mailcapture/mailtraffic.pcap
+
+
+#convert to csv
+cat ./http.*.log | /opt/bro/bin/bro-cut  -c -d > ~/Documents/http2.csv && cat ./files.*.log | /opt/bro/bin/bro-cut  -c -d > ~/Documents/files2.csv
+
+#######get cert from pcap
+modify the script to get ALL-HOST certs first, it put all in a pem file
+ /opt/bro/bin/bro -r ./9mar.pcap protocols/ssl/validate-certs
+####XTRACT THE CERT
+/opt/bro/bin/bro -r ./9mar.pcap protocols/ssl/extract-certs-pem.bro
+#from interface
+/opt/bro/bin/bro -i bond0 protocols/ssl/extract-certs-pem.bro
+##-##get certs from pem file https://isc.sans.edu/forums/diary/Tracking+SSL+Certificates/20427/  ||| https://www.circl.lu/services/passive-ssl/
+$ awk '
+split_after == 1 {close(n".pem"); n++;split_after=0}
+/-----END CERTIFICATE-----/ {split_after=1}
+{print > n".pem"}' <certs-remote.pem
+####-##  extract the URLs related to them
+$ for i in *.pem
+do openssl x509 -in $i -text -noout | 
+    grep DNS:|
+    awk '{ print $1}'|
+    awk -F ':' '{ print $2 }'|
+    sed 's/,$//'
+done | sort -u >domains.tmp
+###
+
+openssl x509 -in certs-remote.pem -text -noout
+
+#list of cert issuers names
+
+###extract files from a capture
+bro -r /home/ernst/lars/2/9mar.pcap /opt/bro/share/bro/policy/frameworks/files/extract-all-files.bro 
+
+###this modified script, will also try to get the mime type , and add file extension
+./bro -r /home/ernst/lars/2/9mar.pcap x2.bro
+
+#####################3
+cat dns.log | bro-cut query | sort -u | > domains
+for i in `cat domains`; do grep $i ZeusGameover_Domains; done
+
+
+#detect issuers.... strange names strange issuer
+cat ~/lars/ssl.*.log | /opt/bro/bin/bro-cut server_name subject issuer_subject | tail -20 | sort -u
+
+#http clients
+cat ~/lars/http.*.log | /opt/bro/bin/bro-cut user_agent | head -80
+
+
+###
+1-
+export GOPATH=$HOME/go
+export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
+2-
+go get github.com/tools/godep
+go get github.com/jteeuwen/go-bindata/...
+cd ~/go/src
+3-
+ernst@localhost:~/go/src$ git clone https://github.com/criticalstack/brotop.git
+
+4-make
+
