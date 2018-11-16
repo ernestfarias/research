@@ -1,0 +1,23 @@
+https://www.buybitcoinworldwide.com/mining/pools/
+
+What is a Mining Pool?
+Mining pools are groups of cooperating miners who agree to share block rewards in proportion to their contributed mining hash power.
+While mining pools are desirable to the average miner as they smooth out rewards and make them more predictable, they unfortunately concentrate power to the mining pool’s owner.
+Miners can, however, choose to redirect their hashing power to a different mining pool at anytime.
+
+-Nordic mining pools
+Bitclub.Network 
+Bitclub Network is a large mining pool based on Iceland.
+
+GoGreenLight KnCMiner 
+Sweden is home to KnCMiner, a Bitcoin mining company based in Stockholm. KnCMiner currently mines about 7.5% of all bitcoins
+
+-Mining Pools vs Cloud Mining
+Many people read about mining pools and think it is just a group that pays out free bitcoins. This is not true! Mining pools are for people who have mining hardware to split profits.
+Many people get mining pools confused with cloud mining. Cloud mining is where you pay a service provider to miner for you and you get the rewards.
+
+
+list of pools
+https://go.catonetworks.com/rs/245-RJK-441/images/miningpools-feed-by-Cato-Networks.txt
+
+https://thehackernews.com/2018/02/cryptocurrency-mining-threat.html
