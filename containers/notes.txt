@@ -1,0 +1,21 @@
+Containerized infrastructure also makes scanning network traffic for security threats more challenging. 
+Containers deployed on multiple hosts typically communicate over a virtual, encrypted network, and they are assigned dynamic IP addresses that change continuously as applications are scaled and load balanced by the orchestrator. 
+Detecting network traffic anomalies in such an environment requires specialized, application-aware network filtering tools.
+
+CRI-O, and rkt Vuln to container escape
+
+--------
+RAFT and libssh TBT
+ (CVE-2018-10933) exists in libssh versions 0.6 and above being used in server mode
+it allows anyone to authenticate to a server without any credentials,
+simply by telling the system that they’re a legitimate user.
+
+----
+kubelet exploit case
+https://medium.com/handy-tech/analysis-of-a-kubernetes-hack-backdooring-through-kubelet-823be5c3d67c
+
+
+----
+A container running as privileged essentially disables the security mechanisms provided by Docker and allows 
+code to run on the underlying system. 
+avoid allowing any parts of your cluster to run with this setting.
