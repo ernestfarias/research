@@ -1,0 +1,3 @@
+set BIN=oclHashcat-lite64
+set OPTS=--gpu-accel 200 --gpu-watchdog 0 --outfile-watch 0 --restore-timer 0 --pw-min 6 --pw-max 6 --custom-charset1 ?l?d?s?u
+%BIN% %OPTS% --hash-type 0 aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa ?1?1?1?1?1?1?1?1?1?1?1?1?1
