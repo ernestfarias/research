@@ -18,4 +18,4 @@ https://medium.com/handy-tech/analysis-of-a-kubernetes-hack-backdooring-through-
 ----
 A container running as privileged essentially disables the security mechanisms provided by Docker and allows 
 code to run on the underlying system. 
-So whenever possible, avoid allowing any parts of your cluster to run with this setting.
+avoid allowing any parts of your cluster to run with this setting.
