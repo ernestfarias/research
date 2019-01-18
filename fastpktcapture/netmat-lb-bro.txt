@@ -1,0 +1,560 @@
+#NETMAP LB 100% CPU
+!!solution: make number of netmap pipes to match number of lb process
+NETMAP LB AND NODE.CFG
+LB-PIPES : 16
+WORKER LB_PROC : LB-PIPES / # OF WORKERS per NIC
+PIN CPUS: ALL YOU LIKE TO USE X EACH WORKER
+WORKERS AT LEAST 1 PER NIC. USE 2
+
+ie:
+SAMPLE1- 1NIC:
+/opt/wh-netmap/exec-lb.sh   
+nohup /opt/wh-netmap/lb -i em2 -p broem2:16 -B 10000 -s 10&>/dev/null 2>&1 &
+
+node.cfg
+# NIC1-------------------
+[worker-1]
+type=worker
+host=localhost
+interface=netmap::broem2
+lb_procs=8
+lb_method=custom
+pin_cpus=2,3,4,5,6,7,8,9,10,11,12,13,14,15,16
+
+[worker-2]
+#ring1
+type=worker
+host=localhost
+interface=netmap::broem2
+lb_procs=8
+lb_method=custom
+pin_cpus=17,18,19,20,21,22,23,24,25,26,27,28,29,31
+
+ie:
+or SAMPLE1:
+/opt/wh-netmap/exec-lb.sh   
+nohup /opt/wh-netmap/lb -i em2 -p broem2:16 -B 10000 -s 10&>/dev/null 2>&1 &
+
+node.cfg
+# NIC1-------------------
+[worker-1]
+type=worker
+host=localhost
+interface=netmap::broem2
+lb_procs=16
+lb_method=custom
+pin_cpus=2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17
+
+
+
+##VIEW PACKETS dropped by netmap
+cat /var/log/syslog  | grep p2p2 | grep packets_dropped | cut -d ',' -f5
+
+
+https://blog.rapid7.com/2016/06/24/bro-series-creating-a-bro-cluster/
+#1---install netmap device
+git clone
+https://github.com/luigirizzo/netmap/tree/master/LINUX
+
+#compile
+./configure make
+./configure --kernel-sources=/usr/src/linux-VerOfRunningKernel
+
+./configure --kernel-sources=/home/ernst/prj/ubuntu-xenial/kernel \
+		    --kernel-dir=/home/ernst/prj/ubuntu-xenial/kernel
+
+./configure --no-drivers --kernel-sources=/home/ernst/prj/linux4.15/ubuntu-xenial/
+./configure --no-drivers --kernel-sources=/home/ernst/prj/linux4.15/ubuntu-xenial/ --kernel-dir=/lib/modules/4.15.0-33-generic/build
+
+#manual install of module
+mkdir /lib/modules/$(uname -r)/extra/
+cp netmap.ko /lib/modules/$(uname -r)/extra/
+depmod -a
+modprobe netmap
+
+
+
+#get lb and netmap.ko
+scp /mnt/data/tmp/netmap/build-apps/lb/lb ernst@192.168.2.100:
+scp /mnt/data/tmp/netmap/netmap.ko ernst@192.168.2.100:
+
+
+#tutor
+https://github.com/vmaffione/netmap-tutorial
+
+#isntall
+https://github.com/vmaffione/netmap-tutorial/blob/master/instructions
+https://github.com/luigirizzo/netmap
+
+
+--------BRO W BRO-NETMAP
+all sourcer in /prj/brorelated/bro and bro-netmap
+#A-COMPILE INSTALL BRO
+#get bro sources from dev , latest stable = https://www.bro.org/download/ , .tar file
+   git clone --recursive git://git.bro.org/bro
+#build bro
+cd bro
+./configure --prefix=/opt/bro
+make
+sudo make install
+
+#-B COMPILE INSTALL BRO-NETMAP
+get bro-netmap
+git clone https://github.com/bro/bro-netmap.git
+#compile, bro-dist->bro sourcers, install-root->loc of bro plugins
+cd bro-netmap
+./configure --bro-dist=../bro --install-root=opt/bro/lib/bro/plugins
+make
+sudo Bmake install
+
+#-C TAR TO MOVE TO A SENSOR
+#tar to move to sensor
+cd /opt
+sudo tar -cvf bro.tar ./bro
+#send .tar to sensor
+scp bro.tar whuser@qotomtest:
+
+#-D ON SENSOR
+##copy the new bro
+#untar bro dir and replace previous bro dir
+tar -xvf bro.tar
+#reset bro config and install wh-broscripts
+apt install --reinstall wh-postconfig
+apt install --reinstall wh-bro-scripts
+
+#install netmap drivers
+i compile it on sensor and make install
+
+#ON LOAD
+modprobe netmap
+#Give access to the user that runs netmap plugin to bond0 
+chown root:sensor /dev/netmap
+chmod -R 660 /dev/netmap
+chown root:sensor /proc/net/bonding/bond0 
+
+#lb and pipes
+https://github.com/luigirizzo/netmap/issues/331
+lb must start first then the other processes
+
+
+#-----END BRO W NETMAP--------------
+
+##test bro-netmap work
+sudo -u sensor /opt/bro/bin/bro -N Bro::Netmap
+#output should be> Bro::Netmap - Packet acquisition via Netmap (dynamic, version 1.0)
+
+/opt/bro/bin/bro  -i netmap::bond0
+
+----install bro
+https://www.bro.org/sphinx/install/install.html
+
+
+
+OPTIONAL USING BRO-PKG.----
+
+#2install pip
+wget https://bootstrap.pypa.io/get-pip.py
+
+#install git pip
+pip install git
+pip install Cmake  , or CMake or cmake
+bro-pkg install bro/bro-netmap
+---
+tests cms
+ethtool -S bond0
+
+----------
+ADDD
+ifaces delete the offload
+sudo ethtool -K p1p1 rxvlan off
+sudo ethtool -K p1p1 txvlan off
+ethtool -L p2p1 combined 1
+
+#use lb tool to load balance, lb must run before any bro or steno if restart lb ,then restart those processes
+/mnt/data/tmp/netmap/build-apps/lb/nohup lb -i p2p1 -p bro:2 -B 10000 -s 60
+get iface p2p2 , create 2 rings netmap sessions interface netmap:bro, buffer of 10k , send to syslog every 60 seconds
+and create netmap:p2p1 all rings
+
+#other samples
+http://bro.bro-ids.narkive.com/VpTfGOuQ/10gbps-bro-netmap-ixgbe-lb
+https://www.bro.org/brocon2016/slides/shirk_bsd.pdf
+https://www.bro.org//bro4pros2017/Hall_Netmap_Bro4Pros2017.pdf
+
+---some guides
+#config rss suricata
+https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Packet_Capture
+#configure workers
+https://dallinwarne.com/uncategorized/getting-started-with-intrusion-detection-system-ids-bro-configure-and-run/
+////////////////////////////////////
+
+
+BRO node.cfg
+root@qotomtest:/# cat /opt/bro/etc/node.cfg 
+# Example BroControl node configuration.
+#
+# This example has a standalone node ready to go except for possibly changing
+# the sniffing interface.
+
+# This is a complete standalone configuration.  Most likely you will
+# only need to change the interface.
+#[bro]
+##type=standalone
+#type=standalone
+#host=localhost
+##interface=bond0
+##
+#lb_method=custom
+#lb_procs=4
+#interface=netmap::bond0
+
+
+
+## Below is an example clustered configuration. If you use this,
+## remove the [bro] node above.
+
+[manager]
+type=manager
+host=localhost
+
+[proxy-1]
+type=proxy
+host=localhost
+
+[worker-1]
+type=worker
+host=localhost
+
+interface=netmap::bro
+lb_procs=1
+lb_method=custom
+pin_cpus=2
+#use cpu 2
+
+[worker-2]
+type=worker
+host=localhost
+interface=netmap::bro
+lb_procs=1
+lb_method=custom
+pin_cpus=3
+#user cpu 3
+
+#
+#[worker-3]
+#type=worker
+#host=host4
+#interface=eth0
+
+--------
+
+change steno and bro config files
+/opt/wh-netmap# nano /opt/bro/etc/node.cfg
+/opt/wh-netmap# systemctl restart broctl
+/opt/wh-netmap# nano /etc/stenographer/config
+
+---
+netmap.rules
+touch /etc/udev/rules.d/netmap
+echo -e 'KERNEL=="netmap", GROUP="sensor", MODE="0660"' >  /etc/udev/rules.d/netmap.rules
+
+install netmap script sample
+https://github.com/NTAP/warpcore/blob/master/Vagrantfile#L74
+
+###### NETMAP MULTIPLES 3NICS 3.may
+
+##CONFIG 3NICS where 2rings per Nic 1 workers per RING , 1 process per worker
+#stop broctl
+#1-modify /opt/wh-netmap/exec-lb.sh
+nohup /opt/wh-netmap/lb -i em1 -p broem1:2 -B 10000 -s 120&>/dev/null 2>&1 &
+nohup /opt/wh-netmap/lb -i em2 -p broem2:2 -B 10000 -s 120&>/dev/null 2>&1 &
+nohup /opt/wh-netmap/lb -i em3 -p broem3:2 -B 10000 -s 120&>/dev/null 2>&1 &
+
+----
+#OORR SEE IF WORKS
+/opt/wh-netmap/lb -i p2p1 -p brop2p1:3 -B 10000 -s 600&
+/opt/wh-netmap/lb -i p1p1 -p brop1p1:3 -B 10000 -s 600
+
+exit 0
+----
+
+#bro:2 is 2 rings x NIC
+#check all rings created
+cat /var/log/syslog  | grep netmap
+#start lb and then bro
+#check that bro is using the rings
+sudo -u sensor /opt/bro/bin/broctl diag
+#2-modify node.cfg
+#i use 1 worker x ring
+
+###########BOF
+[manager]
+type=manager
+host=localhost
+
+[proxy-1]
+type=proxy
+host=localhost
+
+# NIC1----------
+[worker-1]
+#nic1 ring0
+type=worker
+host=localhost
+
+interface=netmap::broem1
+lb_procs=1
+lb_method=custom
+pin_cpus=2,3
+
+[worker-2]
+#nic1 ring0
+type=worker
+host=localhost
+interface=netmap::broem1
+lb_procs=1
+lb_method=custom
+pin_cpus=4,5
+
+# NIC2 -------------------
+[worker-3]
+#nic1 ring0
+type=worker
+host=localhost
+
+interface=netmap::broem2
+lb_procs=1
+lb_method=custom
+pin_cpus=2,3
+
+[worker-4]
+#nic1 ring0
+type=worker
+host=localhost
+interface=netmap::broem2
+lb_procs=1
+lb_method=custom
+pin_cpus=4,5
+
+# NIC3 -------------------
+[worker-5]
+#nic1 ring0
+type=worker
+host=localhost
+
+interface=netmap::broem3
+lb_procs=1
+lb_method=custom
+pin_cpus=2,3
+
+[worker-6]
+#nic1 ring0
+type=worker
+host=localhost
+interface=netmap::broem3
+lb_procs=1
+lb_method=custom
+pin_cpus=4,5
+#############EOF
+
+
+
+###############netmap-lb.service######################
+[Unit]
+Description=Netmap Load Balancer
+After=network.target
+After=syslog.target
+Before=broctl.service
+Before=stenographer.service
+PropagatesReloadTo=broctl.service
+PropagatesReloadTo=stenographer.service
+
+[Service]
+#Type=simple
+Type=forking
+User=sensor
+Group=sensor
+SyslogIdentifier=netmap-lb
+#LimitFSIZE=4294967296
+#LimitNOFILE=1000000
+#EnvironmentFile=/opt/wh-netmap/config
+ExecStartPre=/opt/wh-netmap/set-params.sh
+ExecStart=/opt/wh-netmap/exec-lb.sh
+ExecStopPost=/usr/bin/killall lb
+
+[Install]
+WantedBy=multi-user.target
+#######################################################
+
+5 NICS CONFIG SAMPLE, netmap with 2rings x NIC, bro using 1ring x worker , and 2 cpus x worker->>>>>>>>>>>>>>>>>>
+
+#########/etc/network/inteface########
+#Network interfaces files created by provision tool for  dell
+
+
+#the loop iface
+auto lo
+iface lo inet loopback
+
+#internet interface
+auto em4
+allow-hotplug em4
+iface em4 inet dhcp
+
+#The monitoring interfaces
+auto em3
+allow-hotplug em3
+iface em3 inet manual
+        up ifconfig em3 promisc up
+	up ethtool -K em3 rx off tx off sg off tso off gso off gro off
+
+auto em2
+allow-hotplug em2
+iface em2 inet manual
+        up ifconfig em2 promisc up
+	up ethtool -K em2 rx off tx off sg off tso off gso off gro off
+
+auto em1
+allow-hotplug em1
+iface em1 inet manual
+        up ifconfig em1 promisc up
+	up ethtool -K em1 rx off tx off sg off tso off gso off gro off
+
+#FO NIC
+auto p2p1
+allow-hotplug p2p1
+iface em1 inet manual
+        up ifconfig p2p1 promisc up
+	up ethtool -K p2p1 rx off tx off sg off tso off gso off gro off
+
+auto p2p2
+allow-hotplug p2p2
+iface p2p2 inet manual
+        up ifconfig p2p2 promisc up
+	up ethtool -K p2p2 rx off tx off sg off tso off gso off gro off
+
+
+#Bonding interface,all
+#address 10.0.0.80
+#netmask 255.255.255.0
+##################################################################
+
+
+
+#################/opt/wh-netmap/exec-lb.sh  3NICs############
+#!/bin/bash
+# this script runs the lb applicataion , creates instances of netmap for applications, ie bro steno etc.
+# created separated from service file,since it could change by hardware and config
+#set -x
+nohup /opt/wh-netmap/lb -i em1 -p broem1:2 -B 10000 -s 120&>/dev/null 2>&1 &
+nohup /opt/wh-netmap/lb -i em2 -p broem2:2 -B 10000 -s 120&>/dev/null 2>&1 &
+nohup /opt/wh-netmap/lb -i em3 -p broem3:2 -B 10000 -s 120&>/dev/null 2>&1 &
+nohup /opt/wh-netmap/lb -i p2p1 -p brop2p1:2 -B 10000 -s 120&>/dev/null 2>&1 &
+nohup /opt/wh-netmap/lb -i p2p2 -p brop2p2:2 -B 10000 -s 120&>/dev/null 2>&1 &
+#/opt/wh-netmap/lb -i em1 -p bro:2 -B 10000 -s 120 -i em2 -p bro:2 -B 10000 -s 120 -i em3 -p bro:2 -B 10000 -s 120
+sleep 3
+exit 0
+############################################################
+
+###############BRO node.cfg file ############################
+[manager]
+type=manager
+host=localhost
+
+[proxy-1]
+type=proxy
+host=localhost
+
+# NIC1-------------------
+[worker-1]
+#ring0
+type=worker
+host=localhost
+
+interface=netmap::broem1
+lb_procs=1
+lb_method=custom
+pin_cpus=2,3
+
+[worker-2]
+#ring1
+type=worker
+host=localhost
+interface=netmap::broem1
+lb_procs=1
+lb_method=custom
+pin_cpus=4,5
+
+# NIC2 -------------------
+[worker-3]
+type=worker
+host=localhost
+
+interface=netmap::broem2
+lb_procs=1
+lb_method=custom
+pin_cpus=2,3
+
+[worker-4]
+type=worker
+host=localhost
+interface=netmap::broem2
+lb_procs=1
+lb_method=custom
+pin_cpus=4,5
+
+# NIC3 -------------------
+[worker-5]
+type=worker
+host=localhost
+
+interface=netmap::broem3
+lb_procs=1
+lb_method=custom
+pin_cpus=2,3
+
+[worker-6]
+type=worker
+host=localhost
+interface=netmap::broem3
+lb_procs=1
+lb_method=custom
+pin_cpus=4,5
+
+
+########################
+NETMAP LB AND NODE.CFG
+LB-PIPES : 16
+WORKER LB_PROC : LB-PIPES / # OF WORKERS per NIC
+PIN CPUS: ALL YOU LIKE TO USE X EACH WORKER
+WORKERS AT LEAST 1 PER NIC. USE 2
+
+
+see rings, must reach 0 packet drop
+journalctl -f | grep em2
+
+SAMPLE:
+/opt/wh-netmap/exec-lb.sh   
+nohup /opt/wh-netmap/lb -i em2 -p broem2:16 -B 10000 -s 10&>/dev/null 2>&1 &
+
+node.cfg
+# NIC1-------------------
+[worker-1]
+type=worker
+host=localhost
+interface=netmap::broem2
+lb_procs=8
+lb_method=custom
+pin_cpus=2,3,4,5,6,7,8,9,10,11,12,13,14,15,16
+
+[worker-2]
+#ring1
+type=worker
+host=localhost
+interface=netmap::broem2
+lb_procs=8
+lb_method=custom
+pin_cpus=17,18,19,20,21,22,23,24,25,26,27,28,29,31
+
+
+#---NIC2
+
